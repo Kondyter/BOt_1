@@ -1,122 +1,151 @@
+
 import random
-from flask import Flask, request, jsonify
-from typing import Tuple
+from typing import Tuple, Dict, Any
+
+from flask import Flask, Response, request
 
 app = Flask(__name__)
 
-DB = {}  # База даних агентів
+
+DB: Dict[int, Any] = {}
+
 CONTEXT = {
     'round': 0,
     'map': None,
     'size': None,
+    'init_balance': 0,
+    'location': [1, 0]
 }
 
-# Тип відповіді
-StrResponse = Tuple[str, int]
+# Bot action
+#x, y = agent['location']
 
-# Перевірка сервера
-@app.route('/health')
-def health() -> StrResponse:
-    return '', 200
+univers_ac = {
+  "type": "NONE",
+  "params": {}
+}
 
-# Ініціалізація карти
+bot_Building = {
+  "type": "DEPLOY",
+  "params": {
+    "power_type": "WINDMILL",
+    "d_loc": random.choice([[-1, 0], [0, 1], [1, 0], [0, -1]])
+  }
+}
+
+bot_Move = {
+  "type": "MOVE",
+  "params": {
+    "d_loc": random.choice([[-1, 0], [0, 1], [1, 0], [0, -1]])
+  }
+}
+
+bot_reconfig = {
+  "type": "RECONFIGURE",
+  "params": {
+    "d_loc": [-1, 1]
+  }
+}
+
+bot_die = {
+  "type": "NONE",
+  "params": {}
+}
+
+bot_exp = {
+  "type": "EXPLORE",
+  "params": {}
+}
+
+# Factory Action
+
+Fac_bot = {
+  "type": "BUILD_BOT",
+  "params": {
+    "d_loc": [random.randint(-1, 1), random.randint(-1, 1)]
+  }
+}
+
+Fac_Ass_Sol = {
+  "type": "ASSEMBLE_POWER_PLANT",
+  "params": {
+    "power_type": 'SOLAR_PANELS'
+  }
+}
+
+Fac_Ass_Wind = {
+  "type": "ASSEMBLE_POWER_PLANT",
+  "params": {
+    "power_type": 'WINDMILL'
+  }
+}
+
+
+def terrain_to_structure(terrain_type: str, tp: str) -> str:
+    
+    return {
+        'OCEAN': 'WINDMILL',
+        'MOUNTAINS': 'GEOTHERMAL',
+        'DESERT': 'SOLAR_PANELS',
+        'RIVER': 'DAM',
+        'PLAINS': 'WINDMILL'
+    }.get(terrain_type, tp)
+
+#tupe_of_obj = terrain_to_structure()
+
+balance = CONTEXT['init_balance']
+###
+
+@app.get('/health')
+def health() -> Response:
+    return Response(status=200)
+
+
+@app.post('/agent/<int:bot_id>')
+def create_bot(bot_id: int) -> Response:
+    DB[bot_id] = request.json
+
+    return Response(status=200)
+
 @app.route('/init', methods=['POST'])
-def init() -> StrResponse:
-    size = request.json.get('map_size')
-    if not size:
-        return jsonify({'error': 'Missing map_size in request'}), 400
-
+def init() -> Response:
+    size = request.json['map_size']
     CONTEXT['map'] = [[None] * size for _ in range(size)]
     CONTEXT['size'] = size
 
-    global DB
-    DB = {}  # Очищення бази даних агентів
-
+@app.post('/round')
+def update_round() -> Response:
+    # Оновлення раунду в контексті
+    CONTEXT['round'] = request.json['round']
     return '', 200
 
-# Обробка нового раунду
-@app.route('/round', methods=['POST'])
-def round_route() -> StrResponse:
-    round_number = request.json.get('round')
-    if round_number is None:
-        return jsonify({'error': 'Missing round number'}), 400
 
-    CONTEXT['round'] = round_number
-    return '', 200
+@app.get('/agent/<int:bot_id>/action')
+def get_bot_action(bot_id: int) -> Tuple[dict, int]:
+    bot = DB.get(bot_id)
+    if not bot:
+        return {"error": "Bot not found"}, 404
+    
+    action = univers_ac
 
-# Отримання дії агента
-@app.route('/agent/<int:agent_id>/action', methods=['GET'])
-def get_action(agent_id: int):
-    agent = DB.get(agent_id)
-    if not agent:
-        return jsonify({'error': 'Agent not found'}), 404
+    bot_type = bot.get('type')
+    current_round = CONTEXT.get('round', 0)
+    balance = CONTEXT.get('init_balance', 0)
 
-    if agent['type'] == 'FACTORY':
-        # Створення інженера, якщо його ще немає
-        if sum(1 for a in DB.values() if a.get('type') == 'ENGINEER_BOT') < 2:
-            return jsonify({
-                'type': 'BUILD_BOT',
-                'params': {'d_loc': random.choice([[-1, 0], [0, 1], [1, 0], [0, -1]])}
-            })
-        # Створення вітряка, якщо ресурси закінчуються
-        elif sum(agent['warehouse'].values()) < 1:
-            return jsonify({
-                'type': 'ASSEMBLE_POWER_PLANT',
-                'params': {'power_type': 'WINDMILL'}
-            })
+    if bot_type == 'FACTORY' and current_round == 1:
+        action = Fac_bot
+    elif bot_type == 'FACTORY' and current_round == 2:
+        action = Fac_Ass_Wind
+    
+    elif bot_type == 'ENGINEER_BOT' and current_round <= 3:
+        action = bot_Building
+    elif bot_type == 'ENGINEER_BOT' and current_round > 5:
+        if balance >= 150:
+            action = bot_Building
         else:
-            return jsonify({'type': 'NONE'})
+            action = bot_Move
+    return action, 200
 
-    if agent['type'] == 'ENGINEER_BOT':
-        x, y = agent.get('location', (0, 0))
-        map_cell = CONTEXT['map'][x][y] if 0 <= x < CONTEXT['size'] and 0 <= y < CONTEXT['size'] else None
-
-        if map_cell is None:
-            return jsonify({
-                'type': "MOVE",
-                "params": {'d_loc': random.choice([[-1, 0], [0, 1], [1, 0], [0, -1]])}
-            })
-        elif map_cell.get('type') == 'OCEAN':
-            return jsonify({
-                'type': 'DEPLOY',
-                'params': {'power_type': 'WINDMILL', 'd_loc': [0, 0]}
-            })
-        else:
-            return jsonify({
-                'type': 'MOVE',
-                'params': {'d_loc': random.choice([[-1, 0], [0, 1], [1, 0], [0, -1]])}
-            })
-
-    return jsonify({'type': 'NONE'})
-
-# Оновлення інформації про агента
-@app.route('/agent/<int:agent_id>', methods=['DELETE', 'POST', 'PATCH'])
-def update_agent(agent_id: int) -> StrResponse:
-    if request.method == 'POST':
-        DB[agent_id] = request.json
-    elif request.method == 'PATCH':
-        if agent_id in DB:
-            DB[agent_id].update(request.json)
-        else:
-            return jsonify({'error': 'Agent not found'}), 404
-    elif request.method == 'DELETE':
-        DB.pop(agent_id, None)
-
-    return '', 200
-
-# Оновлення карти на основі досліджень агента
-@app.route('/agent/<int:agent_id>/view', methods=['POST'])
-def explore(agent_id: int) -> StrResponse:
-    new_map = request.json.get('map')
-    if not new_map or len(new_map) != CONTEXT['size']:
-        return jsonify({'error': 'Invalid or missing map'}), 400
-
-    for x in range(CONTEXT['size']):
-        for y in range(CONTEXT['size']):
-            CONTEXT['map'][x][y] = new_map[x][y] or CONTEXT['map'][x][y]
-
-    return '', 200
-
-# Запуск сервера
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
