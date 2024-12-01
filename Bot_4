@@ -2,7 +2,7 @@
 import random
 from typing import Tuple, Dict, Any
 
-from flask import Flask, Response, request
+from flask import Flask, Response, request, jsonify
 
 app = Flask(__name__)
 
@@ -14,9 +14,47 @@ CONTEXT = {
     'map': None,
     'size': None,
     'init_balance': 0,
-    'location': [1, 0]
+#    'location': [1, 0],
+    'agent_id': 0
 }
 
+
+# Objects:
+### OCEAN
+Wind = {
+    'type': 'DEPLOY',
+    'params': {
+        'power_type': 'WINDMILL',
+        'd_loc': random.choice([[-1, 0], [0, 1], [1, 0], [0, -1]])
+    }
+}
+### DESERT
+Solar = {
+    'type': 'DEPLOY',
+    'params': {
+        'power_type': 'SOLAR_PANELS',
+        'd_loc': random.choice([[-1, 0], [0, 1], [1, 0], [0, -1]])
+    }
+}
+
+### MOUNTAIN
+GEO = {
+    'type': 'DEPLOY',
+    'params': {
+        'power_type': 'GEOTHERMAL',
+        'd_loc': random.choice([[-1, 0], [0, 1], [1, 0], [0, -1]])
+    }
+}
+
+
+### RIVER
+DAMp_weis_to_die = {
+    'type': 'DEPLOY',
+    'params': {
+        'power_type': 'DAM',
+        'd_loc': random.choice([[-1, 0], [0, 1], [1, 0], [0, -1]])
+    }
+}
 # Bot action
 #x, y = agent['location']
 
@@ -91,7 +129,7 @@ def terrain_to_structure(terrain_type: str, tp: str) -> str:
         'PLAINS': 'WINDMILL'
     }.get(terrain_type, tp)
 
-#tupe_of_obj = terrain_to_structure()
+
 
 balance = CONTEXT['init_balance']
 ###
@@ -115,7 +153,6 @@ def init() -> Response:
 
 @app.post('/round')
 def update_round() -> Response:
-    # Оновлення раунду в контексті
     CONTEXT['round'] = request.json['round']
     return '', 200
 
@@ -136,15 +173,40 @@ def get_bot_action(bot_id: int) -> Tuple[dict, int]:
         action = Fac_bot
     elif bot_type == 'FACTORY' and current_round == 2:
         action = Fac_Ass_Wind
-    
+    elif bot_type == 'FACTORY' and current_round > 5:
+        if balance >= 150:
+            action = Fac_Ass_Wind
+    elif bot_type == 'FACTORY' and current_round >= 12 and current_round <= 15:
+        if balance >= 150:
+            action = Fac_bot   
     elif bot_type == 'ENGINEER_BOT' and current_round <= 3:
         action = bot_Building
     elif bot_type == 'ENGINEER_BOT' and current_round > 5:
-        if balance >= 150:
+        if balance >= 50:
             action = bot_Building
         else:
             action = bot_Move
+
     return action, 200
+
+### Для оптимізації
+def tera(ter: str):
+    agent = DB['agent_id']
+    if agent['type'] == 'ENGINEER_BOT':
+        x, y = agent['location']
+        if CONTEXT['map'][x][y]['type'] == 'OCEAN':
+            return 'OCEAN'
+        elif CONTEXT['map'][x][y]['type'] == 'DESERT':
+            return 'DESERT'
+        elif CONTEXT['map'][x][y]['type'] == 'MOUNTAIN':
+            return 'MOUNTAIN'
+        elif CONTEXT['map'][x][y]['type'] == 'RIVER':
+            return 'RIVER'
+        elif CONTEXT['map'][x][y]['type'] == 'PLAINS':
+            return 'PLAINS'
+        else:
+            None
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
