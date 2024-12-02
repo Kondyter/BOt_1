@@ -1,0 +1,80 @@
+GET http://localhost:5000/health
+
+###
+POST  http://localhost:5000/round
+Content-Type: application/json
+
+{
+    "round": 1,
+	"balance": 300
+}
+
+
+###
+POST  http://localhost:5000/init
+Content-Type: application/json
+
+{
+    "map_size": 24,
+    "init_balance": 230,
+    "team": "RED"
+}
+
+###
+GET http://localhost:5000/agent/1/action
+Content-Type: application/json
+
+{
+  "type": "BUILD_BOT",
+  "params": {
+    "d_loc": [-1, 1]
+  }
+}
+
+
+###
+POST http://localhost:5000/agent/1
+Content-Type: application/json
+
+{
+    "id": 1,
+    "type": "FACTORY",
+    "team": "RED",
+    "location": [1, 4],
+    "warehouse": {}
+}
+
+
+
+###
+POST http://localhost:5000/agent/1/action
+Content-Type: application/json
+
+{
+    "id": 1,
+    "type": "ENGINEER_BOT",
+    "team": "RED",
+    "location": [0, 5]
+}
+
+###
+POST http://localhost:5000/agent/1
+Content-Type: application/json
+
+{
+    "type": "ENGINEER_BOT",
+    "location": [0, 0],
+    "warehouse": {}
+}
+
+###
+POST /agent/1/view
+Content-Type: application/json
+
+{
+    "map": [
+        [{"type": "PLAINS", agent: null}, {"type": "PLAINS", agent: {"id": 1, "type": "FACTORY"}, {"type": "DESSERT", agent: null}],
+        [{"type": "OCEAN", agent: null}, {"type": "PLAINS", agent: null}, {"type": "PLAINS", agent: null}],
+        [{"type": "OCEAN", agent: null}, {"type": "PLAINS", agent: null}, {"type": "PLAINS", agent: null}]
+    ]
+}

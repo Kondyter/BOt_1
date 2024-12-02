@@ -1,0 +1,49 @@
+GET http://localhost:5000/health
+
+###
+POST http://localhost:5000/init
+Content-Type: application/json
+
+{
+    "map_size": 24,
+    "init_balance": 230,
+    "team": "RED"
+}
+
+###
+POST http://localhost:5000/round
+Content-Type: application/json
+
+{
+    "round": 1,
+		"balance": 190
+}
+
+###
+GET http://localhost:5000/agent/1/action
+{
+  "type": "BUILD_BOT",
+  "params": {
+    "d_loc": [-1, 1]
+  }
+}
+
+###
+POST http://localhost:5000/agent/1
+Content-Type: application/json
+
+{
+    "id": 1,
+    "type": "POWER_PLANT",
+    "location": [10, 4],
+    "power_type": "SOLAR_PANELS"
+}
+
+###
+PATCH http://localhost:5000/agent/1
+Content-Type: application/json
+
+{
+    "location": [1, 0],
+    "warehouse": {"SOLAR_PANELS": 1}
+}
