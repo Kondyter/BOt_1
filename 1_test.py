@@ -38,10 +38,14 @@ def handle_factory_action(bot: dict, current_round: int, balance: int) -> dict:
         return {"type": "BUILD_BOT", "params": {"d_loc": [0, 1]}}
     elif current_round == 2 or (current_round > 5 and balance >= 150):
         return {"type": "ASSEMBLE_POWER_PLANT", "params": {"power_type": "WINDMILL"}}
-    elif current_round > 5 and balance > 600:
-        return {"type": "ASSEMBLE_POWER_PLANT", "params": {"power_type": "GEOTHERMAL"}}
-    elif 12 <= current_round <= 15 and balance >= 150:
+ #   elif current_round == 20 and balance > 600:
+ #       return {"type": "ASSEMBLE_POWER_PLANT", "params": {"power_type": "GEOTHERMAL"}} # відкрити, коли будуть відповідні умови
+#   elif current_round > 25 and balance > 1200:
+#        return {"type": "ASSEMBLE_POWER_PLANT", "params": {"power_type": "DAM"}} # відкрити, коли будуть відповідні умови
+    elif current_round == 12 and balance >= 150:
         return {"type": "BUILD_BOT", "params": {"d_loc": [1, -1]}}
+    elif current_round == 15 and balance >= 150:
+        return {"type": "BUILD_BOT", "params": {"d_loc": [-1, 1]}}
     return {"type": "NONE", "params": {}}
 
 # Обробка дій для інженерного бота
@@ -51,7 +55,7 @@ def handle_engineer_action(bot: dict, balance: int) -> dict:
     terrain_type = terrain.get('type', None)
 
     # Якщо інженер знайшов існуючу структуру, виконує RECONFIGURE
-    if terrain_type in ['WINDMILL', 'SOLAR_PANELS', 'GEOTHERMAL', 'DAM']:
+    if terrain_type in ['WINDMILL', 'SOLAR_PANELS', 'GEOTHERMAL', 'DAM']:# напевно варто додати переівірку на колір команди, щоб не перелаштовувати свої
         return {
             "type": "RECONFIGURE",
             "params": {
