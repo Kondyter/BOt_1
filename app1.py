@@ -49,8 +49,8 @@ def round_route() -> StrResponse:
 @app.route('/agent/<int:agent_id>/action', methods=['POST'])
 def get_action(agent_id: int):
     agent = DB.get(agent_id)
-    if agent is None:
-        return jsonify({'error': 'Agent not found'}), 404
+    #if agent is None:
+        #return jsonify({'error': 'Agent not found'}), 404
 
     x, y = agent['location']
     vision_radius = 5
