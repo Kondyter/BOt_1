@@ -167,12 +167,14 @@ def get_bot_action(bot_id: int) -> Tuple[dict, int]:
 
     return jsonify(action), 200
 
-@app.route('/agent/<int:bot_id>', methods=['POST', 'PATCH'])
+@app.route('/agent/<int:bot_id>', methods=['POST', 'PATCH', [DELETE]])
 def update_agent(bot_id: int):
     if request.method == 'POST':
         DB[bot_id] = request.json
     elif request.method == 'PATCH':
         DB[bot_id].update(request.json)
+    elif request.method == 'DELETE':
+        del DB[bot_id]
     return '', 200
 
 
