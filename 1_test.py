@@ -43,6 +43,17 @@ def check_discovered_terrain(terrain_type: str) -> bool:
     return False
 
 # Робота фабрики
+# Функція для перевірки знайденої території ботами
+def check_discovered_terrain(terrain_type: str) -> bool:
+    for bot_id, bot in DB.items():
+        if bot['type'] == 'ENGINEER_BOT':
+            x, y = bot['location']
+            terrain = get_terrain(x, y)
+            if terrain.get('type') == terrain_type:
+                return True
+    return False
+
+# Робота фабрики
 def handle_factory_action(bot: dict, current_round: int, balance: int) -> dict:
     # Якщо знайдено океан, замовити вітряк і теде. 
     if check_discovered_terrain('OCEAN') and current_round > 7 and balance >= 150:
@@ -111,6 +122,7 @@ def handle_engineer_action(bot: dict, current_round: int, balance: int) -> dict:
         }
     }
 
+# Шапка для скрипта
 # Шапка для скрипта
 @app.get('/health')
 def health() -> Response:
