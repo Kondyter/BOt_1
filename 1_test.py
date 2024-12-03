@@ -10,10 +10,12 @@ CONTEXT = {
     'map': None,
     'size': None,
     'init_balance': 0,
-    'agent_id': 0
+    'agent_id': 0,
+    'warehouse': {}
 }
 
 # Константи
+
 DIRECTIONS = [[-1, 0], [0, 1], [1, 0], [0, -1]]
 
 # Функція для вибору споруди на основі типу території
@@ -164,6 +166,24 @@ def get_bot_action(bot_id: int) -> Tuple[dict, int]:
         action = {"type": "NONE", "params": {}}
 
     return jsonify(action), 200
+
+@app.route('/agent/<int:bot_id>', methods=['POST', 'PATCH'])
+def update_agent(bot_id: int):
+    if request.method == 'POST':
+        DB[bot_id] = request.json
+    elif request.method == 'PATCH':
+        DB[bot_id].update(request.json)
+    return '', 200
+
+
+@app.route('/agent/<int:bot_id>/wiev', methods=['POST']) # Ще не досліджено і не втягнуто в алгоритм роботи
+def explore(bot_id: int):
+    nem_map = request.json['map']
+    for x in range(CONTEXT['size']):
+        for y in range(CONTEXT['size']):
+            CONTEXT['map'][x][y] = nem_map[x][y] or CONTEXT['map'][x][y]
+    return '', 200
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
