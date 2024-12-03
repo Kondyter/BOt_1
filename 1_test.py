@@ -44,41 +44,56 @@ def check_discovered_terrain(terrain_type: str) -> bool:
 
 # Робота фабрики
 def handle_factory_action(bot: dict, current_round: int, balance: int) -> dict:
-    # Якщо знайдено океан, замовити вітряк і теде
-    if check_discovered_terrain('OCEAN') and current_round > 5 and balance >= 150:
+    # Якщо знайдено океан, замовити вітряк і теде. 
+    if check_discovered_terrain('OCEAN') and current_round > 7 and balance >= 150:
         return {"type": "ASSEMBLE_POWER_PLANT", "params": {"power_type": "WINDMILL"}}
-    elif check_discovered_terrain('DESERT') and current_round > 5 and balance >= 600:
+    elif check_discovered_terrain('DESERT') and current_round > 7 and balance >= 600:
         return {"type": "ASSEMBLE_POWER_PLANT", "params": {"power_type": "SOLAR_PANELS"}}
-    elif check_discovered_terrain('MOUNTAIN') and current_round > 15 and balance >= 600:
+    elif check_discovered_terrain('MOUNTAIN') and current_round > 7 and balance >= 600:
         return {"type": "ASSEMBLE_POWER_PLANT", "params": {"power_type": "GEOTHERMAL"}}
+    elif check_discovered_terrain('RIVER') and current_round > 15 and balance >= 1200:
+        return {"type": "ASSEMBLE_POWER_PLANT", "params": {"power_type": "DAM"}}
     # Фабрика перші кроки
     if current_round == 1:
         return {"type": "BUILD_BOT", "params": {"d_loc": [0, 1]}}
-    elif current_round == 2 or (current_round > 5 and balance >= 150):
+    elif current_round == 2 and balance >= 150:
+        return {"type": "ASSEMBLE_POWER_PLANT", "params": {"power_type": "WINDMILL"}}
+    elif current_round == 3 and balance >= 130:
         return {"type": "ASSEMBLE_POWER_PLANT", "params": {"power_type": "WINDMILL"}}
     elif current_round == 12 and balance >= 150:
         return {"type": "BUILD_BOT", "params": {"d_loc": [1, -1]}}
     elif current_round == 20 and balance >= 150:
-        return {"type": "BUILD_BOT", "params": {"d_loc": [1, 0]}}
+        return {"type": "BUILD_BOT", "params": {"d_loc": [-1, 1]}}
        
     return {"type": "NONE", "params": {}}
 
 # Як двіжує наш бот, логіка
-def handle_engineer_action(bot: dict, balance: int) -> dict:
+def handle_engineer_action(bot: dict, current_round: int, balance: int) -> dict:
     x, y = bot['location']
     terrain = get_terrain(x, y)
+    terrain2 = get_terrain(x + random(-1, 1), y) # це може бути рішенням подубови об'єкта зі зміщенням на один пункт
     terrain_type = terrain.get('type', None)
-
+    
+    # В перші кроки лупашимо вітряки не залежно від місця локалізації
+    if current_round <= 5 and balance >= 30:
+        return {
+                "type": "DEPLOY",
+                "params": {
+                    "power_type": 'WINDMILL',
+                    "d_loc": random.choice(DIRECTIONS) 
+                }
+        }
     # Якщо бот знайшов чужу генерацію, виконує RECONFIG
     if terrain_type in ['WINDMILL', 'SOLAR_PANELS', 'GEOTHERMAL', 'DAM']:
         return {
             "type": "RECONFIGURE",
             "params": {
-                "d_loc": random.choice(DIRECTIONS)
+                "d_loc": random.choice(DIRECTIONS) # тут можуть бути проблеми, бо ми не перевіряємо баланс чи достатньо в нас енергії
             }
         }
 
     # Перевіряємо відповідність місцевості для будівництва
+
     if terrain_type in ['OCEAN', 'DESERT', 'MOUNTAIN', 'RIVER', 'PLAINS']:
         power_type = get_power_structure(terrain_type)
         if balance >= 30:
@@ -86,7 +101,7 @@ def handle_engineer_action(bot: dict, balance: int) -> dict:
                 "type": "DEPLOY",
                 "params": {
                     "power_type": power_type,
-                    "d_loc": terrain
+                    "d_loc": terrain # тут може бути проблема з координатами побудови бо ми ставимо фактично на те місце де стоїть інженер
                 }
             }
     return {
