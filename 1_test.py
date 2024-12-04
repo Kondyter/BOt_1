@@ -125,7 +125,6 @@ def handle_engineer_action(bot: dict, current_round: int, balance: int) -> dict:
     }
 
 # Шапка для скрипта
-# Шапка для скрипта
 @app.get('/health')
 def health() -> Response:
     return Response(status=200)
